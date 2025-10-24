@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ####################################################################
 
 
-    // --- LÓGICA DO APLICATIVO (NÃO PRECISA MUDAR DAQUI PARA BAIXO) ---
+    // --- LÓGICA DO APLICATIVO ---
 
     // Inicializa o Firebase
     firebase.initializeApp(firebaseConfig);
@@ -38,6 +38,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const codigoFinal = document.getElementById("codigo-final");
     const logInfo = document.getElementById("log-info");
     const erro = document.getElementById("erro");
+
+    // NOVOS Elementos
+    const areaLoading = document.getElementById("area-loading");
+    const btnCopiar = document.getElementById("btn-copiar");
 
     // Pega o ID do pedido da URL (ex: ...html?id=DOCUMENTO_ID)
     const urlParams = new URLSearchParams(window.location.search);
@@ -80,10 +84,18 @@ document.addEventListener("DOMContentLoaded", () => {
         btnResgatar.disabled = !chkTermos.checked;
     });
 
-    // 3. Ação de Resgatar
+    // 3. Ação de Resgatar (ATUALIZADA)
     btnResgatar.addEventListener('click', () => {
         btnResgatar.disabled = true;
-        btnResgatar.textContent = "Processando...";
+        
+        // --- INÍCIO DA MUDANÇA ---
+        // 1. Esconde a área de termos
+        areaResgate.style.display = "none";
+        
+        // 2. Mostra a mensagem de loading
+        areaLoading.style.display = "block";
+        areaLoading.textContent = "Gerando seu código válido, aguarde...";
+        // --- FIM DA MUDANÇA ---
 
         // Pega o código novamente para garantir
         pedidoRef.get().then((doc) => {
@@ -96,23 +108,58 @@ document.addEventListener("DOMContentLoaded", () => {
             const logInfoTexto = `Resgatado em ${dataLog.toLocaleString("pt-BR")} | User-Agent: ${navigator.userAgent}`;
 
             // Atualiza o pedido no Firebase com as provas do resgate
-            // Isso só funciona se as suas Regras de Segurança estiverem corretas
             return pedidoRef.update({
                 resgatado: true,
                 data_resgate: dataLog,
                 log_info: logInfoTexto
             }).then(() => {
-                // Sucesso! Mostra o código e o log
-                mostrarCodigoResgatado(codigo, logInfoTexto);
+                
+                // --- INÍCIO DA MUDANÇA ---
+                // 3. Delay de 5 segundos
+                setTimeout(() => {
+                    // 4. Esconde o loading
+                    areaLoading.style.display = "none";
+                    // 5. Mostra o código
+                    mostrarCodigoResgatado(codigo, logInfoTexto);
+                }, 5000); // 5000ms = 5 segundos
+                // --- FIM DA MUDANÇA ---
+
             });
         })
         .catch((err) => {
+            // Esconde o loading e mostra o erro
+            areaLoading.style.display = "none";
             mostrarErro("ERRO AO SALVAR PROVA: O resgate falhou. Verifique as 'Regras' de segurança do seu Firebase (Firestore).");
             console.error(err);
-            btnResgatar.disabled = false;
-            btnResgatar.textContent = "Tentar Novamente";
+            
+            // Não re-habilita o botão, mas mostra o erro
+            // Se quiser que ele tente de novo, descomente as linhas abaixo
+            // areaResgate.style.display = "block"; // Mostra os termos de novo
+            // btnResgatar.disabled = false;
         });
     });
+
+    // --- NOVA FUNÇÃO: Lógica do Botão Copiar ---
+    btnCopiar.addEventListener("click", () => {
+        const codigoParaCopiar = codigoFinal.textContent;
+        navigator.clipboard.writeText(codigoParaCopiar).then(() => {
+            // Sucesso ao copiar
+            btnCopiar.textContent = "Copiado!";
+            btnCopiar.disabled = true;
+            setTimeout(() => {
+                btnCopiar.textContent = "Copiar";
+                btnCopiar.disabled = false;
+            }, 2000); // Volta ao normal depois de 2 segundos
+        }, (err) => {
+            // Falha ao copiar
+            console.error("Falha ao copiar código: ", err);
+            btnCopiar.textContent = "Falha!";
+             setTimeout(() => {
+                btnCopiar.textContent = "Copiar";
+            }, 2000);
+        });
+    });
+    // --- FIM DA NOVA FUNÇÃO ---
     
     // Função para mostrar o código (quando já resgatado ou sucesso)
     function mostrarCodigoResgatado(codigo, logTexto) {
@@ -127,6 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function mostrarErro(mensagem) {
         infoPedido.style.display = "none";
         areaResgate.style.display = "none";
+        areaLoading.style.display = "none"; // Garante que o loading suma
         erro.style.display = "block";
         erro.textContent = mensagem;
     }
