@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     // --- CONFIGURAÇÃO ---
     // Cole seu ID do Formspree aqui
-    const FORMSPREE_ID = "https://formspree.io/f/xovkgnnd"; 
+    const FORMSPREE_ID = "xovkgnnd"; 
     // --------------------
 
     const infoPedido = document.getElementById("info-pedido");
