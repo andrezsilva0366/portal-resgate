@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     // --- CONFIGURAÇÃO ---
-    // Cole seu ID do Formspree aqui
-    const FORMSPREE_ID = "movkgkvq"; 
+    // Coloque o SEU e-mail aqui. Os logs serão enviados para ele.
+    const EMAIL_DO_FORMULARIO = "andrez.silva.0366@gmail.com"; 
     // --------------------
 
     const infoPedido = document.getElementById("info-pedido");
@@ -21,7 +21,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    // O link para o arquivo JSON do pedido
     const pedidoUrl = `pedidos/${pedidoId}.json`;
 
     // 1. Tenta carregar o arquivo JSON do pedido
@@ -33,7 +32,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return response.json();
         })
         .then(data => {
-            // Sucesso! O arquivo JSON foi encontrado
             infoPedido.innerHTML = `<p>Exibindo pedido: <strong>${pedidoId}</strong></p>`;
             areaResgate.style.display = "block";
         })
@@ -51,13 +49,12 @@ document.addEventListener("DOMContentLoaded", () => {
         btnResgatar.disabled = true;
         btnResgatar.textContent = "Processando...";
         
-        // Duas coisas acontecem ao mesmo tempo
         Promise.all([
             // Coisa 1: Buscar o código no arquivo JSON
             fetch(pedidoUrl).then(res => res.json()),
             
-            // Coisa 2: Enviar a prova para o Formspree
-            enviarLog(pedidoId)
+            // Coisa 2: Enviar a prova para o FormSubmit
+            enviarLog(pedidoId) // A função vai ler o email da constante
         ])
         .then(([pedidoData, logData]) => {
             // Sucesso!
@@ -73,15 +70,20 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // Função que envia a prova para o Formspree
+    // Função que envia a prova para o FormSubmit.co
     async function enviarLog(id) {
         const formData = new FormData();
         formData.append("pedido_id", id);
         formData.append("resgatado_em", new Date().toISOString());
         formData.append("user_agent", navigator.userAgent);
         
+        // Campos especiais do FormSubmit
+        formData.append("_subject", `[LOG DE RESGATE] Pedido: ${id}`);
+        formData.append("_template", "table"); // Para formatar bonito no email
+        formData.append("_captcha", "false"); // Desativa o captcha deles
+
         try {
-            const response = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+            const response = await fetch(`https://formsubmit.co/${EMAIL_DO_FORMULARIO}`, {
                 method: 'POST',
                 body: formData,
                 headers: {
@@ -90,13 +92,12 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             return await response.json();
         } catch (error) {
-            console.error("Erro ao enviar log para o Formspree:", error);
+            console.error("Erro ao enviar log para o FormSubmit:", error);
             // Mesmo se o log falhar, o cliente ainda precisa ver o código
-            // Então não vamos parar o processo aqui, só logar o erro
             return { ok: false };
         }
     }
-
+    
     function mostrarErro(mensagem) {
         infoPedido.style.display = "none";
         areaResgate.style.display = "none";
