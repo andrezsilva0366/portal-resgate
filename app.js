@@ -1,9 +1,35 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // --- CONFIGURAÇÃO ---
-    // Coloque o SEU e-mail aqui. Os logs serão enviados para ele.
-    const EMAIL_DO_FORMULARIO = "andrez.silva.0366@gmail.com"; 
-    // --------------------
 
+    // ####################################################################
+    // #######################   CONFIGURAÇÃO AQUI   ######################
+    // ####################################################################
+    //
+    // SUA CONFIGURAÇÃO DO FIREBASE (JÁ INSERIDA):
+    //
+    
+    const firebaseConfig = {
+      apiKey: "AIzaSyCwzDPSudClByCmv-vJHqS4czRnNnBNjRA",
+      authDomain: "portal-resgate.firebaseapp.com",
+      projectId: "portal-resgate",
+      storageBucket: "portal-resgate.firebasestorage.app",
+      messagingSenderId: "473246719179",
+      appId: "1:473246719179:web:ee82f0a1dd602cf8180f4e",
+      measurementId: "G-JST812NF67"
+    };
+    
+    //
+    // ####################################################################
+    // #####################   FIM DA CONFIGURAÇÃO   ######################
+    // ####################################################################
+
+
+    // --- LÓGICA DO APLICATIVO (NÃO PRECISA MUDAR DAQUI PARA BAIXO) ---
+
+    // Inicializa o Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Elementos da página
     const infoPedido = document.getElementById("info-pedido");
     const areaResgate = document.getElementById("area-resgate");
     const areaCodigo = document.getElementById("area-codigo");
@@ -13,6 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const logInfo = document.getElementById("log-info");
     const erro = document.getElementById("erro");
 
+    // Pega o ID do pedido da URL (ex: ...html?id=DOCUMENTO_ID)
     const urlParams = new URLSearchParams(window.location.search);
     const pedidoId = urlParams.get('id');
 
@@ -21,22 +48,31 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
     }
 
-    const pedidoUrl = `pedidos/${pedidoId}.json`;
+    // Pega a referência do pedido no banco de dados
+    const pedidoRef = db.collection("pedidos").doc(pedidoId);
 
-    // 1. Tenta carregar o arquivo JSON do pedido
-    fetch(pedidoUrl)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Pedido não encontrado ou inválido.");
+    // 1. Tenta carregar os dados do pedido do Firebase
+    pedidoRef.get()
+        .then((doc) => {
+            if (doc.exists) {
+                // O pedido existe!
+                const data = doc.data();
+                if (data.resgatado) {
+                    // Pedido já foi resgatado
+                    mostrarCodigoResgatado(data.codigo, data.log_info);
+                } else {
+                    // Pedido pendente, mostra o botão
+                    infoPedido.innerHTML = `<p>Exibindo pedido: <strong>${pedidoId}</strong></p>`;
+                    areaResgate.style.display = "block";
+                }
+            } else {
+                // Pedido não encontrado
+                throw new Error("Pedido não encontrado ou inválido. Verifique o ID.");
             }
-            return response.json();
         })
-        .then(data => {
-            infoPedido.innerHTML = `<p>Exibindo pedido: <strong>${pedidoId}</strong></p>`;
-            areaResgate.style.display = "block";
-        })
-        .catch(err => {
+        .catch((err) => {
             mostrarErro(err.message);
+            console.error(err);
         });
 
     // 2. Controla o checkbox
@@ -48,56 +84,46 @@ document.addEventListener("DOMContentLoaded", () => {
     btnResgatar.addEventListener('click', () => {
         btnResgatar.disabled = true;
         btnResgatar.textContent = "Processando...";
-        
-        Promise.all([
-            // Coisa 1: Buscar o código no arquivo JSON
-            fetch(pedidoUrl).then(res => res.json()),
+
+        // Pega o código novamente para garantir
+        pedidoRef.get().then((doc) => {
+            if (!doc.exists) throw new Error("Erro de verificação do pedido.");
             
-            // Coisa 2: Enviar a prova para o FormSubmit
-            enviarLog(pedidoId) // A função vai ler o email da constante
-        ])
-        .then(([pedidoData, logData]) => {
-            // Sucesso!
-            areaResgate.style.display = "none";
-            areaCodigo.style.display = "block";
-            codigoFinal.textContent = pedidoData.codigo; // Mostra o código do JSON
+            const codigo = doc.data().codigo;
+            const dataLog = new Date();
             
-            const dataLog = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-            logInfo.textContent = `Código resgatado com sucesso em ${dataLog}.`;
+            // Esta é a PROVA que será salva
+            const logInfoTexto = `Resgatado em ${dataLog.toLocaleString("pt-BR")} | User-Agent: ${navigator.userAgent}`;
+
+            // Atualiza o pedido no Firebase com as provas do resgate
+            // Isso só funciona se as suas Regras de Segurança estiverem corretas
+            return pedidoRef.update({
+                resgatado: true,
+                data_resgate: dataLog,
+                log_info: logInfoTexto
+            }).then(() => {
+                // Sucesso! Mostra o código e o log
+                mostrarCodigoResgatado(codigo, logInfoTexto);
+            });
         })
-        .catch(err => {
-            mostrarErro("Erro ao processar o resgate.");
+        .catch((err) => {
+            mostrarErro("ERRO AO SALVAR PROVA: O resgate falhou. Verifique as 'Regras' de segurança do seu Firebase (Firestore).");
+            console.error(err);
+            btnResgatar.disabled = false;
+            btnResgatar.textContent = "Tentar Novamente";
         });
     });
-
-    // Função que envia a prova para o FormSubmit.co
-    async function enviarLog(id) {
-        const formData = new FormData();
-        formData.append("pedido_id", id);
-        formData.append("resgatado_em", new Date().toISOString());
-        formData.append("user_agent", navigator.userAgent);
-        
-        // Campos especiais do FormSubmit
-        formData.append("_subject", `[LOG DE RESGATE] Pedido: ${id}`);
-        formData.append("_template", "table"); // Para formatar bonito no email
-        formData.append("_captcha", "false"); // Desativa o captcha deles
-
-        try {
-            const response = await fetch(`https://formsubmit.co/${EMAIL_DO_FORMULARIO}`, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-            return await response.json();
-        } catch (error) {
-            console.error("Erro ao enviar log para o FormSubmit:", error);
-            // Mesmo se o log falhar, o cliente ainda precisa ver o código
-            return { ok: false };
-        }
-    }
     
+    // Função para mostrar o código (quando já resgatado ou sucesso)
+    function mostrarCodigoResgatado(codigo, logTexto) {
+        areaResgate.style.display = "none";
+        infoPedido.style.display = "none";
+        areaCodigo.style.display = "block";
+        codigoFinal.textContent = codigo;
+        logInfo.textContent = logTexto;
+    }
+
+    // Função para mostrar qualquer erro
     function mostrarErro(mensagem) {
         infoPedido.style.display = "none";
         areaResgate.style.display = "none";
