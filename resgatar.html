@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resgatar seu Pedido</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Resgate do seu Pedido</h1>
+        
+        <div id="info-pedido">
+            <p>Carregando...</p>
+        </div>
+
+        <div id="area-resgate" style="display: none;">
+            <p>Ao clicar no botão abaixo, você concorda que o produto digital será considerado entregue e não poderá ser reembolsado.</p>
+            <input type="checkbox" id="termos" />
+            <label for="termos">Eu li e aceito os termos.</label>
+            <br/><br/>
+            <button id="btn-resgatar" disabled>Revelar Meu Código</button>
+        </div>
+
+        <div id="area-codigo" style="display: none;">
+            <h3>Seu código é:</h3>
+            <div id="codigo-final" class="codigo-box"></div>
+            <p id="log-info"></p>
+        </div>
+
+        <div id="erro" class="erro" style="display: none;"></div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
