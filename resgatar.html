@@ -22,9 +22,16 @@
             <button id="btn-resgatar" disabled>Revelar Meu Código</button>
         </div>
 
+        <div id="area-loading" class="loading-box" style="display: none;">
+            Gerando seu código válido, aguarde...
+            </div>
+
         <div id="area-codigo" style="display: none;">
             <h3>Seu código é:</h3>
-            <div id="codigo-final" class="codigo-box"></div>
+            <div class="codigo-container">
+                <div id="codigo-final" class="codigo-box"></div>
+                <button id="btn-copiar" class="btn-copiar-style" title="Copiar código">Copiar</button>
+            </div>
             <p id="log-info"></p>
         </div>
 
