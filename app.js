@@ -88,14 +88,11 @@ document.addEventListener("DOMContentLoaded", () => {
     btnResgatar.addEventListener('click', () => {
         btnResgatar.disabled = true;
         
-        // --- INÍCIO DA MUDANÇA ---
         // 1. Esconde a área de termos
         areaResgate.style.display = "none";
         
-        // 2. Mostra a mensagem de loading
+        // 2. Mostra a área de loading (que já tem o spinner e o texto)
         areaLoading.style.display = "block";
-        areaLoading.textContent = "Gerando seu código válido, aguarde...";
-        // --- FIM DA MUDANÇA ---
 
         // Pega o código novamente para garantir
         pedidoRef.get().then((doc) => {
@@ -114,7 +111,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 log_info: logInfoTexto
             }).then(() => {
                 
-                // --- INÍCIO DA MUDANÇA ---
                 // 3. Delay de 5 segundos
                 setTimeout(() => {
                     // 4. Esconde o loading
@@ -122,7 +118,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     // 5. Mostra o código
                     mostrarCodigoResgatado(codigo, logInfoTexto);
                 }, 5000); // 5000ms = 5 segundos
-                // --- FIM DA MUDANÇA ---
 
             });
         })
@@ -131,15 +126,10 @@ document.addEventListener("DOMContentLoaded", () => {
             areaLoading.style.display = "none";
             mostrarErro("ERRO AO SALVAR PROVA: O resgate falhou. Verifique as 'Regras' de segurança do seu Firebase (Firestore).");
             console.error(err);
-            
-            // Não re-habilita o botão, mas mostra o erro
-            // Se quiser que ele tente de novo, descomente as linhas abaixo
-            // areaResgate.style.display = "block"; // Mostra os termos de novo
-            // btnResgatar.disabled = false;
         });
     });
 
-    // --- NOVA FUNÇÃO: Lógica do Botão Copiar ---
+    // --- Lógica do Botão Copiar ---
     btnCopiar.addEventListener("click", () => {
         const codigoParaCopiar = codigoFinal.textContent;
         navigator.clipboard.writeText(codigoParaCopiar).then(() => {
@@ -159,7 +149,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 2000);
         });
     });
-    // --- FIM DA NOVA FUNÇÃO ---
     
     // Função para mostrar o código (quando já resgatado ou sucesso)
     function mostrarCodigoResgatado(codigo, logTexto) {
