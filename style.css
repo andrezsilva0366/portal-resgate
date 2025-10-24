@@ -61,6 +61,10 @@ body.dark-mode {
     color: #00bfff;
 }
 
+.dark-mode h4 {
+    color: #00bfff;
+}
+
 .dark-mode p {
     color: #c0c0c0; /* Cinza claro */
     line-height: 1.6;
